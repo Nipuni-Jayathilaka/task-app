@@ -1,4 +1,4 @@
-package lk.ijse.dep9;
+package lk.ijse.dep9.app;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
