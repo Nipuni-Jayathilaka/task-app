@@ -5,6 +5,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.yaml.snakeyaml.constructor.DuplicateKeyException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,6 +22,16 @@ public class GlobalExceptionHandler {
         errAttribute.put("timestamp",new Date().toString());
         List<String> validationErrList = e.getFieldErrors().stream().map(err -> err.getField() + ":" + err.getDefaultMessage()).collect(Collectors.toList());
         errAttribute.put("errors",validationErrList);
+        return errAttribute;
+    }
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Map<String , Object> duplicateEntityExceptionHandler(){
+        HashMap<String , Object> errAttribute = new LinkedHashMap<>();
+        errAttribute.put("status",HttpStatus.CONFLICT.value());
+        errAttribute.put("error",HttpStatus.CONFLICT.getReasonPhrase());
+        errAttribute.put("message","Duplicate Entity found");
+        errAttribute.put("timestamp",new Date().toString());
         return errAttribute;
     }
 }
