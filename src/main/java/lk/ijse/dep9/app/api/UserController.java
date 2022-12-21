@@ -1,6 +1,7 @@
 package lk.ijse.dep9.app.api;
 
 import lk.ijse.dep9.app.dto.UserDTO;
+import lk.ijse.dep9.app.entity.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.validation.FieldError;
@@ -20,10 +21,10 @@ public class UserController {
     public void createUserAccount(@Valid @RequestBody UserDTO user){
         System.out.println(user);
     }
-    @PatchMapping("/me")
-    public void updateUserAccountDetails(){
-
-
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping(value = "/me",consumes = "application/json")
+    public void updateUserAccountDetails(@Valid @RequestBody UserDTO user){
+        System.out.println(user);
     }
     @GetMapping("/me")
     public void getUserAccountDetails(){
