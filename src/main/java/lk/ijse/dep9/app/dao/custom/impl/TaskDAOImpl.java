@@ -3,103 +3,63 @@ package lk.ijse.dep9.app.dao.custom.impl;
 import lk.ijse.dep9.app.dao.custom.TaskDAO;
 import lk.ijse.dep9.app.entity.Project;
 import lk.ijse.dep9.app.entity.Task;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.stereotype.Component;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Component
 public class TaskDAOImpl implements TaskDAO {
-    private final Connection connection;
+    private final JdbcTemplate jdbc;
+    private final RowMapper<Task> taskRowMapper = (rs, rowNum) -> new Task(rs.getInt("id"), rs.getString("content"), Task.Status.valueOf(rs.getString("status")), rs.getInt("project_id"));
 
-    public TaskDAOImpl(Connection connection) {
-        this.connection = connection;
+    public TaskDAOImpl(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
     }
 
     @Override
     public Task save(Task task) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("INSERT INTO Task (content, status, project_id) VALUES (?,?,?)", Statement.RETURN_GENERATED_KEYS);
-            statement.setString(1,task.getContent());
-            statement.setString(2, String.valueOf(task.getStatus()));
-            statement.setInt(3,task.getProjectId());
-            statement.executeUpdate();
-            ResultSet generatedKeys = statement.getGeneratedKeys();
-            task.setId(generatedKeys.getInt(1));
-            return task;
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(con -> {
+            PreparedStatement stm = con.prepareStatement("INSERT INTO Task (content, status, project_id) VALUES (?, ?, ?)");
+            stm.setString(1, task.getContent());
+            stm.setString(2, task.getStatus().toString());
+            stm.setInt(3, task.getProjectId());
+            return stm;
+        }, keyHolder);
+        task.setId(keyHolder.getKey().intValue());
+        return task;
     }
 
     @Override
     public void update(Task task) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("UPDATE Task SET content=?, status=?,project_id=? WHERE id=?");
-            statement.setString(1,task.getContent());
-            statement.setString(2, String.valueOf(task.getStatus()));
-            statement.setInt(3, task.getProjectId());
-            statement.setInt(4, task.getId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        jdbc.update("UPDATE Task SET content=?, status=?, project_id=? WHERE id=?", task.getContent(), task.getStatus().toString(), task.getProjectId(), task.getId());
     }
 
     @Override
-    public void deleteById(Integer pk) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("DELETE FROM Task WHERE id=?");
-            statement.setInt(1,pk);
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public void deleteById(Integer id) {
+        jdbc.update("DELETE FROM Task WHERE id=?", id);
     }
 
     @Override
-    public Optional<Task> findById(Integer pk) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM Task WHERE id=?");
-            statement.setInt(1,pk);
-            ResultSet rst = statement.executeQuery();
-            if (rst.next()){
-                return Optional.of(new Task(pk, rst.getString("content"),Task.Status.valueOf(rst.getString("status")),rst.getInt("project_id")));
-            }
-            return Optional.empty();
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public Optional<Task> findById(Integer id) {
+        return jdbc.query("SELECT * FROM Task WHERE id=?", taskRowMapper, id).stream().findFirst();
     }
 
     @Override
     public List<Task> findAll() {
-        List<Task> taskList = new ArrayList<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM Task");
-            ResultSet rst = statement.executeQuery();
-            while (rst.next()){
-                taskList.add(new Task(rst.getInt("id"),rst.getString("content"),Task.Status.valueOf(rst.getString("status")),rst.getInt("project_id")));
-            }
-            return taskList;
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return jdbc.query("SELECT * FROM Task", taskRowMapper);
     }
 
     @Override
     public long count() {
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT COUNT(id) FROM Task");
-            ResultSet rst = statement.executeQuery();
-            rst.next();
-            return rst.getLong(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return jdbc.queryForObject("SELECT COUNT(id) FROM Task", Long.class);
     }
 
     @Override
@@ -109,18 +69,6 @@ public class TaskDAOImpl implements TaskDAO {
 
     @Override
     public List<Task> findAllTaskByProjectId(Integer projectId) {
-        try {
-            List<Task> taskList = new ArrayList<>();
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM Task WHERE project_id=?");
-            statement.setInt(1,projectId);
-            ResultSet rst = statement.executeQuery();
-            while (rst.next()){
-                taskList.add(new Task(rst.getInt("id"),rst.getString("content"),Task.Status.valueOf(rst.getString("status")),rst.getInt("project_id")));
-            }
-            return taskList;
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return jdbc.query("SELECT * FROM Task WHERE project_id = ?", taskRowMapper, projectId);
     }
 }

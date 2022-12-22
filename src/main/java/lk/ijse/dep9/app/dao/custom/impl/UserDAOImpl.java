@@ -2,6 +2,9 @@ package lk.ijse.dep9.app.dao.custom.impl;
 
 import lk.ijse.dep9.app.dao.custom.UserDAO;
 import lk.ijse.dep9.app.entity.User;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,101 +14,50 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Component
 public class UserDAOImpl implements UserDAO {
-    private final Connection connection;
-    public UserDAOImpl(Connection connection) {
+    private final JdbcTemplate jdbc;
+    private final RowMapper<User> userRowMapper = (rs, rowNum) -> new User(rs.getString("username"), rs.getString("password"), rs.getString("full_name"));
 
-        this.connection = connection;
+    public UserDAOImpl(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
     }
 
     @Override
-    public User save(User user)  {
-        try {
-            PreparedStatement statement = connection.prepareStatement("INSERT INTO User (username, full_name, password) VALUES (?,?,?)");
-            statement.setString(1,user.getUsername());
-            statement.setString(2,user.getFullName());
-            statement.setString(3,user.getPassword());
-            statement.executeUpdate();
-            return user;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
+    public User save(User user) {
+        jdbc.update("INSERT INTO User (username, full_name, password) VALUES (?, ?, ?)", user.getUsername(), user.getFullName(), user.getPassword());
+        return user;
     }
 
     @Override
     public void update(User user) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("UPDATE User SET full_name=?, password=? WHERE username=?");
-            statement.setString(1,user.getFullName());
-            statement.setString(2, user.getPassword());
-            statement.setString(3, user.getUsername());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        jdbc.update("UPDATE User SET full_name=?, password=? WHERE username=?", user.getFullName(), user.getPassword(), user.getUsername());
     }
 
     @Override
-    public void deleteById(String pk) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("DELETE FROM User WHERE username=?");
-            statement.setString(1,pk);
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-
+    public void deleteById(String username) {
+        jdbc.update("DELETE FROM User WHERE username=?", username);
     }
 
     @Override
-    public Optional<User> findById(String pk) {
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT full_name,username,password FROM User WHERE username=?");
-            statement.setString(1,pk);
-            ResultSet rst = statement.executeQuery();
-            if (rst.next()){
-                return Optional.of(new User(pk, rst.getString("full_name"),rst.getString("password")));
-            }
-            return Optional.empty();
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public Optional<User> findById(String username) {
+        return jdbc.query("SELECT * FROM User WHERE username=?", userRowMapper, username).stream().findFirst();
     }
 
     @Override
     public List<User> findAll() {
-        List<User> userList = new ArrayList<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM User");
-            ResultSet rst = statement.executeQuery();
-            while (rst.next()){
-                userList.add(new User(rst.getString("username"),rst.getString("full_name"),rst.getString("password")));
-            }
-            return userList;
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return jdbc.query("SELECT * FROM User", userRowMapper);
     }
 
     @Override
     public long count() {
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT COUNT(username) FROM User");
-            ResultSet rst = statement.executeQuery();
-            rst.next();
-            return rst.getLong(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
+        return jdbc.queryForObject("SELECT COUNT(username) FROM User", Long.class);
     }
 
     @Override
     public boolean existById(String pk) {
         return findById(pk).isPresent();
     }
+
+
 }

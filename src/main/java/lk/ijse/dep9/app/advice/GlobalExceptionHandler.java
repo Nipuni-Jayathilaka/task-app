@@ -15,24 +15,27 @@ public class GlobalExceptionHandler {
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String , Object> validationException(MethodArgumentNotValidException e){
-        HashMap<String , Object> errAttribute = new LinkedHashMap<>();
-        errAttribute.put("status",HttpStatus.BAD_REQUEST.value());
-        errAttribute.put("error",HttpStatus.BAD_REQUEST.getReasonPhrase());
-        errAttribute.put("timestamp",new Date().toString());
-        List<String> validationErrList = e.getFieldErrors().stream().map(err -> err.getField() + ":" + err.getDefaultMessage()).collect(Collectors.toList());
-        errAttribute.put("errors",validationErrList);
-        return errAttribute;
+    public Map<String, Object> validationExceptions(MethodArgumentNotValidException exp){
+        Map<String, Object> errAttributes = new LinkedHashMap<>();
+        errAttributes.put("status", HttpStatus.BAD_REQUEST.value());
+        errAttributes.put("error", HttpStatus.BAD_REQUEST.getReasonPhrase());
+        errAttributes.put("timestamp", new Date().toString());
+        List<String> validationErrList = exp.getFieldErrors().stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .collect(Collectors.toList());
+        errAttributes.put("errors", validationErrList);
+        return errAttributes;
     }
+
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(DuplicateKeyException.class)
-    public Map<String , Object> duplicateEntityExceptionHandler(){
-        HashMap<String , Object> errAttribute = new LinkedHashMap<>();
-        errAttribute.put("status",HttpStatus.CONFLICT.value());
-        errAttribute.put("error",HttpStatus.CONFLICT.getReasonPhrase());
-        errAttribute.put("message","Duplicate Entity found");
-        errAttribute.put("timestamp",new Date().toString());
-        return errAttribute;
+    public Map<String, Object> duplicateEntityExceptionHandler(){
+        Map<String, Object> errAttributes = new LinkedHashMap<>();
+        errAttributes.put("status", HttpStatus.CONFLICT.value());
+        errAttributes.put("error", HttpStatus.CONFLICT.getReasonPhrase());
+        errAttributes.put("message", "Duplicate entity found");
+        errAttributes.put("timestamp", new Date().toString());
+        return errAttributes;
     }
 }
 
